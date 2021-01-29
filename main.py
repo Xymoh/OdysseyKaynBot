@@ -14,7 +14,7 @@ from discord.ext.commands import has_permissions
 from decryption.decrypt import decrypt
 
 status = ['The universe will be mine', 'Are they taunting us!?', '*Kayn Laughs*', 'Peekaboo']
-api_key = decrypt(r'decryption\riotapi')
+api_key = decrypt('RGAPI-a47d632e-13e0-497f-bf89-cc610f212c1a')
 
 
 def is_it_owner(ctx):
@@ -633,4 +633,4 @@ async def example(ctx):
     await ctx.send(f'Hi im {ctx.author}')
 
 
-client.run(decrypt(r'decryption\botkey'))
+client.run(decrypt('Nzg3NzQ5MDc4Njg2NzYxMDMy.X9ZegA.HQgRcsKJgufZ_1OcNzC9MWpvga8'))
