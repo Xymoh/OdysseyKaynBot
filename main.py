@@ -469,102 +469,105 @@ async def ranking(ctx, rankType: str):
         def __repr__(self):
             return self.summoner_name + self.tier + self.rank + str(self.league_points) + self.wins + self.losses
 
-    try:
-        with open('regions.json', 'r+') as file:
-            regions = json.load(file)
+    if rankType == "solo" or rankType == "flex":
+        try:
+            with open('regions.json', 'r+') as file:
+                regions = json.load(file)
 
-        region = regions[str(ctx.guild.id)]
+            region = regions[str(ctx.guild.id)]
 
-        with open('summoners.json', 'r+') as file:
-            summoners = json.load(file)
+            with open('summoners.json', 'r+') as file:
+                summoners = json.load(file)
 
-        list_of_players = []
-        if summoners['summoner'] != 0:
-            for summoners_data in summoners['summoner']:
-                if summoners_data['server'] == str(ctx.guild.id) and summoners_data['region']\
-                        == regions[str(ctx.guild.id)]:
+            list_of_players = []
+            if summoners['summoner'] != 0:
+                for summoners_data in summoners['summoner']:
+                    if summoners_data['server'] == str(ctx.guild.id) and summoners_data['region']\
+                            == regions[str(ctx.guild.id)]:
 
-                    encrypted_summoner_id = summoners_data['id']
+                        encrypted_summoner_id = summoners_data['id']
 
-                    api_ranking = f'https://{region}.api.riotgames.com/lol/league/v4/entries/by-summoner/' \
-                                  f'{encrypted_summoner_id}?api_key={api_key}'
+                        api_ranking = f'https://{region}.api.riotgames.com/lol/league/v4/entries/by-summoner/' \
+                                      f'{encrypted_summoner_id}?api_key={api_key}'
 
-                    player_ranked = urllib.request.urlopen(api_ranking)
+                        player_ranked = urllib.request.urlopen(api_ranking)
 
-                    player_ranked_data = json.loads(player_ranked.read())
+                        player_ranked_data = json.loads(player_ranked.read())
 
-                    for i in range(len(player_ranked_data)):
-                        if rankType == "solo" and player_ranked_data[i]['queueType'] == "RANKED_SOLO_5x5":
-                            assigning_json_values(
-                                player_ranked_data,
-                                i,
-                                list_of_players,
-                                Summoners
-                            )
-                        elif rankType == "flex" and player_ranked_data[i]['queueType'] == "RANKED_FLEX_SR":
-                            assigning_json_values(
-                                player_ranked_data,
-                                i,
-                                list_of_players,
-                                Summoners
-                            )
-                        else:
-                            print("This player has no rank in this ranking category")
-        else:
-            await ctx.send("There are no players placed in the ranking")
-
-        order = ["CHALLENGER", "GRANDMASTER", "MASTER", "DIAMOND", "PLATINUM", "GOLD", "SILVER", "BRONZE"]
-        pos = {c: p for (p, c) in enumerate(order)}
-        fully_sorted = sorted(list_of_players, key=lambda elem: (pos[elem.tier], elem.rank, -elem.league_points))
-
-        display_text = ''
-        increment_rank = 0
-
-        for text in fully_sorted:
-            increment_rank += 1
-            win_ratio = round((text.wins * 100) / (text.wins + text.losses))
-            parsed_summoner_name = urllib.parse.quote(text.summoner_name)
-
-            if increment_rank == 1:
-                display_text += f"{increment_rank}. {text.summoner_name}" \
-                                f" :first_place: **{text.tier} {text.rank}" \
-                                f" {text.league_points}LP**- " \
-                                f"{text.wins}W {text.losses}L" \
-                                f" / Win Ratio {win_ratio}%\n\n"
-            elif increment_rank == 2:
-                display_text += f"{increment_rank}. {text.summoner_name}" \
-                                f" :second_place: **{text.tier} {text.rank}" \
-                                f" {text.league_points}LP**- " \
-                                f"{text.wins}W {text.losses}L" \
-                                f" / Win Ratio {win_ratio}%\n\n"
-            elif increment_rank == 3:
-                display_text += f"{increment_rank}. {text.summoner_name}" \
-                                f" :third_place: **{text.tier} {text.rank}" \
-                                f" {text.league_points}LP**- " \
-                                f"{text.wins}W {text.losses}L" \
-                                f" / Win Ratio {win_ratio}%\n\n"
+                        for i in range(len(player_ranked_data)):
+                            if rankType == "solo" and player_ranked_data[i]['queueType'] == "RANKED_SOLO_5x5":
+                                assigning_json_values(
+                                    player_ranked_data,
+                                    i,
+                                    list_of_players,
+                                    Summoners
+                                )
+                            elif rankType == "flex" and player_ranked_data[i]['queueType'] == "RANKED_FLEX_SR":
+                                assigning_json_values(
+                                    player_ranked_data,
+                                    i,
+                                    list_of_players,
+                                    Summoners
+                                )
+                            else:
+                                print("This player has no rank in this ranking category")
             else:
-                display_text += f"{increment_rank}. {text.summoner_name}" \
-                                f" **{text.tier} {text.rank}" \
-                                f" {text.league_points}LP**-" \
-                                f" {text.wins}W {text.losses}L" \
-                                f" / Win Ratio {win_ratio}%\n\n"
+                await ctx.send("There are no players placed in the ranking")
 
-            display_text = display_text.replace(text.summoner_name,f'[{text.summoner_name}]'
-                                                f'(https://eune.op.gg/summoner/userName={parsed_summoner_name})')
+            order = ["CHALLENGER", "GRANDMASTER", "MASTER", "DIAMOND", "PLATINUM", "GOLD", "SILVER", "BRONZE"]
+            pos = {c: p for (p, c) in enumerate(order)}
+            fully_sorted = sorted(list_of_players, key=lambda elem: (pos[elem.tier], elem.rank, -elem.league_points))
 
-        embed = discord.Embed(title=f'Ranked {rankType.capitalize()}', color=0x00ff00)
-        embed.add_field(name='\u200b', value=display_text, inline=False)
-        embed.set_thumbnail(url="https://i.pinimg.com/originals/09/2b/fa/092bfa54aad74ce9ab2de010031731f5.png")
+            display_text = ''
+            increment_rank = 0
 
-        await ctx.send(embed=embed)
+            for text in fully_sorted:
+                increment_rank += 1
+                win_ratio = round((text.wins * 100) / (text.wins + text.losses))
+                parsed_summoner_name = urllib.parse.quote(text.summoner_name)
 
-    except Exception as err:
-        if err:
-            print(err)
-            await ctx.send("There might be no players for the ranking list")
-    finally:
-        file.close()
+                if increment_rank == 1:
+                    display_text += f"{increment_rank}. {text.summoner_name}" \
+                                    f" :first_place: **{text.tier} {text.rank}" \
+                                    f" {text.league_points}LP**- " \
+                                    f"{text.wins}W {text.losses}L" \
+                                    f" / Win Ratio {win_ratio}%\n\n"
+                elif increment_rank == 2:
+                    display_text += f"{increment_rank}. {text.summoner_name}" \
+                                    f" :second_place: **{text.tier} {text.rank}" \
+                                    f" {text.league_points}LP**- " \
+                                    f"{text.wins}W {text.losses}L" \
+                                    f" / Win Ratio {win_ratio}%\n\n"
+                elif increment_rank == 3:
+                    display_text += f"{increment_rank}. {text.summoner_name}" \
+                                    f" :third_place: **{text.tier} {text.rank}" \
+                                    f" {text.league_points}LP**- " \
+                                    f"{text.wins}W {text.losses}L" \
+                                    f" / Win Ratio {win_ratio}%\n\n"
+                else:
+                    display_text += f"{increment_rank}. {text.summoner_name}" \
+                                    f" **{text.tier} {text.rank}" \
+                                    f" {text.league_points}LP**-" \
+                                    f" {text.wins}W {text.losses}L" \
+                                    f" / Win Ratio {win_ratio}%\n\n"
+
+                display_text = display_text.replace(text.summoner_name,f'[{text.summoner_name}]'
+                                                    f'(https://eune.op.gg/summoner/userName={parsed_summoner_name})')
+
+            embed = discord.Embed(title=f'Ranked {rankType.capitalize()}', color=0x00ff00)
+            embed.add_field(name='\u200b', value=display_text, inline=False)
+            embed.set_thumbnail(url="https://i.pinimg.com/originals/09/2b/fa/092bfa54aad74ce9ab2de010031731f5.png")
+
+            await ctx.send(embed=embed)
+
+        except Exception as err:
+            if err:
+                print(err)
+                await ctx.send("There might be no players for the ranking list")
+        finally:
+            file.close()
+    else:
+        await ctx.send("Please put the command in this format ex.: ranking solo")
 
 
 @client.command(aliases=['gamemode'])
