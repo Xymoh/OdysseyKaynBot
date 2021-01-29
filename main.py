@@ -6,7 +6,6 @@ import os
 import json
 import urllib.request
 import urllib.parse
-import sqlite3
 from random import choice
 import discord
 
@@ -15,13 +14,7 @@ from discord.ext.commands import has_permissions
 from decryption.decrypt import decrypt
 
 status = ['The universe will be mine', 'Are they taunting us!?', '*Kayn Laughs*', 'Peekaboo']
-
-# Setting the riot api key
-api_key = 'RGAPI-9e11c559-5bb0-4674-8d81-161858607095'
-
-# Setting up the database
-conn = sqlite3.connect('database/summoners.db')
-_cursor = conn.cursor()
+api_key = decrypt('RGAPI-a47d632e-13e0-497f-bf89-cc610f212c1a')
 
 
 def is_it_owner(ctx):
@@ -47,12 +40,10 @@ def get_prefix(client, message):
     Returns:
         str: discord server id converted into the string
     """
-    _cursor.execute(f"SELECT * FROM server_config WHERE guild_id = :guild_id", {'guild_id': str(message.guild.id)})
+    with open('prefixes.json', 'r') as file:
+        prefixes = json.load(file)
 
-    print(str(message.guild.id))
-    server_prefix = _cursor.fetchone()[2]
-
-    return server_prefix
+    return prefixes[str(message.guild.id)]
 
 
 def assigning_json_values(player_ranked_data, index, list_of_players, summoners):
@@ -89,31 +80,21 @@ async def on_guild_join(guild):
     Parameters:
         guild: object: Responsible for reading discord server data
     """
-    try:
-        _cursor.execute("""CREATE TABLE summoners (
-                    summoner_name text,
-                    riot_id text,
-                    discord_server text,
-                    riot_region text
-                )""")
+    with open('prefixes.json', 'r') as file:
+        prefixes = json.load(file)
 
-        conn.commit()
-    except sqlite3.OperationalError:
-        print("Database already exists")
-    try:
-        _cursor.execute("""CREATE TABLE server_config (
-                    guild_id text,
-                    region text,
-                    prefix text
-                )""")
+    prefixes[str(guild.id)] = '$'
 
-        conn.commit()
-    except sqlite3.OperationalError:
-        print("Database already exists")
+    with open('prefixes.json', 'w') as file:
+        json.dump(prefixes, file, indent=4)
 
-    with conn:
-        _cursor.execute("INSERT INTO server_config VALUES (:guild_id, :region, :prefix)",
-                  {'guild_id': str(guild.id),'region': 'eun1', 'prefix': '$'})
+    with open('regions.json', 'r') as file:
+        regions = json.load(file)
+
+    regions[str(guild.id)] = 'eun1'
+
+    with open('regions.json', 'w') as file:
+        json.dump(regions, file, indent=4)
 
 
 @client.event
@@ -124,8 +105,21 @@ async def on_guild_remove(guild):
     Parameters:
         guild: object: Responsible for reading discord server data
     """
-    with conn:
-        _cursor.execute("DELETE FROM server_config WHERE guild_id = :guild_id", {'guild_id': str(guild.id)})
+    with open('prefixes.json', 'r') as file:
+        prefixes = json.load(file)
+
+    prefixes.pop(str(guild.id))
+
+    with open('prefixes.json', 'w') as file:
+        json.dump(prefixes, file, indent=4)
+
+    with open('regions.json', 'r') as file:
+        regions = json.load(file)
+
+    regions.pop(str(guild.id))
+
+    with open('regions.json', 'w') as file:
+        json.dump(regions, file, indent=4)
 
 
 @client.event
@@ -135,6 +129,20 @@ async def on_ready():
     await client.change_presence(status=discord.Status.online, activity=discord.Game('Python Project'), afk=False)
     change_status.start()
     print('Bot connected.')
+
+
+@client.event
+async def on_command_error(ctx, error):
+    """Bot sends the message on the command error/Handler for bot commands
+    errors
+
+    Parameters:
+        ctx: object: A command must always have at least one parameter,
+        ctx, which is the Context as the first one
+        error: object: error responsible for unsuccessful command execution
+    """
+    if isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send('Invalid command used.')
 
 
 # tasks.loop section
@@ -153,31 +161,6 @@ async def ping(ctx):
 
 
 @client.command()
-async def help(ctx):
-    """
-
-    :param ctx:
-    :return:
-    """
-    embed = discord.Embed(title='Commands', color=0x00ff00)
-    embed.add_field(name='$prefix {ctx}', value='ONLY ADMIN Change the prefix of the bot on your server.', inline=False)
-    embed.add_field(name='$region {ctx}', value='ONLY ADMIN Changes the region of your league ranking.', inline=False)
-    embed.add_field(name='$showregion', value='Shows the currently chosen region for your bot.', inline=False)
-    embed.add_field(name='$add {ctx}', value='ONLY ADMIN Adding the player to the ranking list.', inline=False)
-    embed.add_field(name='$del {ctx}', value='ONLY ADMIN Deleting the player from the ranking list.', inline=False)
-    embed.add_field(name='$delall', value='ONLY ADMIN Deletes all the players from your server list.', inline=False)
-    embed.add_field(name='$showall', value='Shows all players from your server list.', inline=False)
-    embed.add_field(name='$ranking solo/flex', value='Displays the ranking among the players '
-                                                     'added to your server list.', inline=False)
-    embed.add_field(name='$gamemode', value='If you dont know which gamemode to play why not to ask the bot?',
-                    inline=False)
-    embed.set_thumbnail(url="https://static.wikia.nocookie.net/leagueoflegends/images/a/a5/"
-                            "Odyssey_Kayn_profileicon.png/revision/latest?cb=20180911213900")
-
-    await ctx.send(embed=embed)
-
-
-@client.command()
 @has_permissions(administrator=True)
 async def prefix(ctx, new_prefix):
     """Bot command for changing the prefix to invoke the bot commands
@@ -187,10 +170,15 @@ async def prefix(ctx, new_prefix):
         ctx, which is the Context as the first one
         new_prefix: object: a given new prefix for invoking the bot commands
     """
-    with conn:
-        _cursor.execute("UPDATE server_config SET prefix = :prefix", {'prefix': new_prefix})
+    with open('prefixes.json', 'r') as file:
+        prefixes = json.load(file)
 
-        await ctx.send(f'Prefix changed to: \'{new_prefix}\'')
+    prefixes[str(ctx.guild.id)] = new_prefix
+
+    with open('prefixes.json', 'w') as file:
+        json.dump(prefixes, file, indent=4)
+
+    await ctx.send(f'Prefix changed to: \'{new_prefix}\'')
 
 
 @client.command(aliases=['region', 'changeregion'])
@@ -203,56 +191,56 @@ async def change_region(ctx, new_region):
         ctx, which is the Context as the first one
         new_region: object: a given new region for responding with the riot api
     """
-    correct_region = False
+    with open('regions.json', 'r') as file:
+        regions = json.load(file)
 
     if new_region.lower() == 'eune':
         new_region = 'eun1'
-        correct_region = True
+        regions[str(ctx.guild.id)] = new_region
         await ctx.send('Region changed to Europe North & East')
     elif new_region.lower() == 'euw':
         new_region = 'euw1'
-        correct_region = True
+        regions[str(ctx.guild.id)] = new_region
         await ctx.send('Region changed to Europe West')
     elif new_region.lower() == 'ru':
-        correct_region = True
+        regions[str(ctx.guild.id)] = new_region
         await ctx.send('Region changed to Russia')
     elif new_region.lower() == 'br':
         new_region = 'br1'
-        correct_region = True
+        regions[str(ctx.guild.id)] = new_region
         await ctx.send('Region changed to Brazil')
     elif new_region.lower() == 'tr':
         new_region = 'tr1'
-        correct_region = True
+        regions[str(ctx.guild.id)] = new_region
         await ctx.send('Region changed to Turkey')
     elif new_region.lower() == 'oce':
         new_region = 'oc1'
-        correct_region = True
+        regions[str(ctx.guild.id)] = new_region
         await ctx.send('Region changed to Oceania')
     elif new_region.lower() == 'las':
         new_region = 'la2'
-        correct_region = True
+        regions[str(ctx.guild.id)] = new_region
         await ctx.send('Region changed to Latin America South')
     elif new_region.lower() == 'lan':
         new_region = 'la1'
-        correct_region = True
+        regions[str(ctx.guild.id)] = new_region
         await ctx.send('Region changed to Latin America North')
     elif new_region.lower() == 'kr':
-        correct_region = True
+        regions[str(ctx.guild.id)] = new_region
         await ctx.send('Region changed to Korea')
     elif new_region.lower() == 'na':
         new_region = 'na1'
-        correct_region = True
+        regions[str(ctx.guild.id)] = new_region
         await ctx.send('Region changed to North America')
     elif new_region.lower() == 'jp':
         new_region = 'jp1'
-        correct_region = True
+        regions[str(ctx.guild.id)] = new_region
         await ctx.send('Region changed to Japan')
     else:
         await ctx.send("This region is not usable within my commands or it does not exist")
 
-    if correct_region:
-        with conn:
-            _cursor.execute("UPDATE server_config SET region = :region", {'region': new_region})
+    with open('regions.json', 'w') as file:
+        json.dump(regions, file, indent=4)
 
 
 @client.command(aliases=['showreg', 'showregion'])
@@ -263,9 +251,10 @@ async def show_reg(ctx):
     ctx, which is the Context as the first one
     :return: returns the message send by the bot
     """
-    _cursor.execute("SELECT * FROM server_config WHERE guild_id = :guild_id", {'guild_id': str(ctx.guild.id)})
+    with open('regions.json', 'r') as file:
+        data = json.load(file)
 
-    region_text = _cursor.fetchone()[1]
+    region_text = data[str(ctx.guild.id)]
 
     if region_text.lower() == 'eun1':
         region_text = 'EUNE'
@@ -305,9 +294,10 @@ async def add_player(ctx, *, member: str):
         a potential ranking command participant
     """
     try:
-        _cursor.execute(f"SELECT * FROM server_config WHERE guild_id = :guild_id", {'guild_id': str(ctx.guild.id)})
+        with open('regions.json', 'r+') as file:
+            regions = json.load(file)
 
-        region = _cursor.fetchone()[1]
+        region = regions[str(ctx.guild.id)]
 
         parsed_member = urllib.parse.quote(member)
 
@@ -318,23 +308,34 @@ async def add_player(ctx, *, member: str):
 
         riot_id = summoner_data['id']
 
-        _cursor.execute("SELECT * FROM summoners WHERE discord_server = :guild_id", {'guild_id': str(ctx.guild.id)})
+        summoners_json_data = {
+            "summonerName": member,
+            "id": riot_id,
+            "server": str(ctx.guild.id),
+            "region": region
+        }
 
-        summoners = _cursor.fetchall()
+        with open('summoners.json', 'r') as file:
+            data = json.load(file)
 
-        copy_id = True
+        bool_riot_id = True
 
-        for summoner in summoners:
-            if summoner[1] == riot_id and summoner[3] == region:
-                copy_id = False
-        if copy_id:
-            with conn:
-                _cursor.execute("""INSERT INTO summoners 
-                VALUES (:summoner_name, :riot_id, :discord_server, :riot_server)""",
-                {'summoner_name': member, 'riot_id': riot_id,
-                 'discord_server': str(ctx.guild.id), 'riot_server': region})
+        if len(data['summoner']) != 0:
+            for summoner in data['summoner']:
+                if summoner['summonerName'].lower() == member.lower() \
+                        and summoner['server'] == str(ctx.guild.id) \
+                        and summoner['region'] == region:
+                    bool_riot_id = False
+            if bool_riot_id:
+                data['summoner'].append(summoners_json_data)
+                with open('summoners.json', 'w+') as file:
+                    json.dump(data, file, indent=4)
+        else:
+            data['summoner'].append(summoners_json_data)
+            with open('summoners.json', 'w+') as file:
+                json.dump(data, file, indent=4)
 
-        if copy_id:
+        if bool_riot_id:
             await ctx.send(f'Player added to the ranking list: \'{member}\'')
         else:
             await ctx.send('Player is already added to the ranking')
@@ -342,7 +343,10 @@ async def add_player(ctx, *, member: str):
     except Exception as err:
         if err:
             print(err)
-            await ctx.send('Some data is incorrect. Check the user name or the region.')
+            await ctx.send(
+                'Some data is incorrect. Check the user name or the region.')
+    finally:
+        file.close()
 
 
 @client.command(aliases=['delplayer', 'del'])
@@ -356,21 +360,15 @@ async def del_player(ctx, *, member: str):
         member: str: name of the player who gonna be considered by the bot for
         a potential ranking command participant
     """
-    _cursor.execute(f"SELECT * FROM server_config WHERE guild_id = :guild_id", {'guild_id': str(ctx.guild.id)})
-
-    region = _cursor.fetchone()[1]
-
-    _cursor.execute("SELECT * FROM summoners WHERE discord_server = :guild_id", {'guild_id': str(ctx.guild.id)})
-
-    data = _cursor.fetchall()
+    with open('summoners.json', 'r+') as file:
+        data = json.load(file)
 
     player_deleted = False
 
-    for elem in data:
-        if elem[0].lower() == member.lower() and elem[2] == str(ctx.guild.id):
-            with conn:
-                _cursor.execute("""DELETE FROM summoners WHERE summoner_name = :summoner_name 
-                AND riot_region = :riot_region""", {'summoner_name': member, 'riot_region': region})
+    if len(data['summoner']) != 0:
+        for i, elem in enumerate(data['summoner']):
+            if elem['summonerName'].lower() == member.lower() and elem['server'] == str(ctx.guild.id):
+                del data['summoner'][i]
                 player_deleted = True
                 break
 
@@ -378,6 +376,9 @@ async def del_player(ctx, *, member: str):
         await ctx.send('Player couldn\'t be deleted from the ranking list')
     else:
         await ctx.send(f"Player \'{member}\' successfully deleted from the ranking list")
+
+    with open('summoners.json', 'w') as file:
+        json.dump(data, file, indent=4)
 
 
 @client.command(aliases=['delall', 'delallplayers'])
@@ -390,22 +391,28 @@ async def del_all_players(ctx):
         ctx: object: A command must always have at least one parameter,
         ctx, which is the Context as the first one
     """
-
-    _cursor.execute("SELECT * FROM summoners WHERE discord_server = :guild_id", {'guild_id': str(ctx.guild.id)})
-
-    data = _cursor.fetchall()
+    with open('summoners.json', 'r+') as file:
+        data = json.load(file)
 
     player_deleted = False
 
-    if len(data) != 0:
-        with conn:
-            _cursor.execute("DELETE FROM summoners WHERE discord_server = :guild_id", {'guild_id': str(ctx.guild.id)})
-            player_deleted = True
+    if len(data['summoner']) != 0:
+        for i in reversed(range(len(data['summoner']))):
+            if data['summoner'][i]['server'] == str(ctx.guild.id):
+                del data['summoner'][i]
+                player_deleted = True
 
     if not player_deleted:
-        await ctx.send('Players couldn\'t be deleted from the ranking list')
+        await ctx.send(
+            'Players couldn\'t be deleted from the ranking list'
+        )
     else:
-        await ctx.send("Players successfully deleted from the ranking list")
+        await ctx.send(
+            "Players successfully deleted from the ranking list"
+        )
+
+    with open('summoners.json', 'w') as file:
+        json.dump(data, file, indent=4)
 
 
 @client.command(aliases=['showplayers', 'showall'])
@@ -417,20 +424,17 @@ async def show_players(ctx):
         ctx: object: A command must always have at least one parameter,
         ctx, which is the Context as the first one
     """
-    _cursor.execute("SELECT * FROM summoners WHERE discord_server = :guild_id", {'guild_id': str(ctx.guild.id)})
-
-    data = _cursor.fetchall()
+    with open('summoners.json', 'r+') as file:
+        data = json.load(file)
 
     summoners_text = ''
     empty_list = True
 
-    if len(data) != 0:
-        for i, elem in enumerate(data):
-            i += 1
-            parsed_summoner_name = urllib.parse.quote(elem[0])
-            empty_list = False
-            summoners_text += f"{i}. Summoner name: [{elem[0]}](https://eune.op.gg/summoner/userName=" \
-                              f"{parsed_summoner_name}) - Region: **{elem[3]}**\n"
+    if len(data['summoner']) != 0:
+        for i in range(len(data['summoner'])):
+            if data['summoner'][i]['server'] == str(ctx.guild.id):
+                empty_list = False
+                summoners_text += f"{data['summoner'][i]['summonerName']} - {data['summoner'][i]['region']}\n"
 
     embed = discord.Embed(color=0x00ff00)
     embed.add_field(name='List of players', value=summoners_text, inline=False)
@@ -447,9 +451,8 @@ async def ranking(ctx, rankType: str):
     previously added players
 
     Parameters:
-        :param ctx: object: A command must always have at least one parameter, ctx, which is the
-         Context as the first one
-        :param rankType: specifying for the command which ranking we want to check
+        ctx: object: A command must always have at least one parameter,
+        ctx, which is the Context as the first one
     """
     class Summoners:
         """Class responsible for creating the custom list which is helping us
@@ -466,116 +469,102 @@ async def ranking(ctx, rankType: str):
         def __repr__(self):
             return self.summoner_name + self.tier + self.rank + str(self.league_points) + self.wins + self.losses
 
-    if rankType == "solo" or rankType == "flex":
-        try:
+    try:
+        with open('regions.json', 'r+') as file:
+            regions = json.load(file)
 
-            _cursor.execute("SELECT * FROM server_config WHERE guild_id = :guild_id", {'guild_id': str(ctx.guild.id)})
+        region = regions[str(ctx.guild.id)]
 
-            region = _cursor.fetchone()[1]
+        with open('summoners.json', 'r+') as file:
+            summoners = json.load(file)
 
-            _cursor.execute("SELECT * FROM summoners WHERE discord_server = :guild_id", {'guild_id': str(ctx.guild.id)})
+        list_of_players = []
+        if summoners['summoner'] != 0:
+            for summoners_data in summoners['summoner']:
+                if summoners_data['server'] == str(ctx.guild.id) and summoners_data['region']\
+                        == regions[str(ctx.guild.id)]:
 
-            data = _cursor.fetchall()
+                    encrypted_summoner_id = summoners_data['id']
 
-            list_of_players = []
+                    api_ranking = f'https://{region}.api.riotgames.com/lol/league/v4/entries/by-summoner/' \
+                                  f'{encrypted_summoner_id}?api_key={api_key}'
 
-            if data != 0:
-                for summoners_data in data:
-                    if summoners_data[2] == str(ctx.guild.id) and summoners_data[3] == region:
+                    player_ranked = urllib.request.urlopen(api_ranking)
 
-                        encrypted_summoner_id = summoners_data[1]
+                    player_ranked_data = json.loads(player_ranked.read())
 
-                        api_ranking = f'https://{region}.api.riotgames.com/lol/league/v4/entries/by-summoner/' \
-                                      f'{encrypted_summoner_id}?api_key={api_key}'
+                    for i in range(len(player_ranked_data)):
+                        if rankType == "solo" and player_ranked_data[i]['queueType'] == "RANKED_SOLO_5x5":
+                            assigning_json_values(
+                                player_ranked_data,
+                                i,
+                                list_of_players,
+                                Summoners
+                            )
+                        elif rankType == "flex" and player_ranked_data[i]['queueType'] == "RANKED_FLEX_SR":
+                            assigning_json_values(
+                                player_ranked_data,
+                                i,
+                                list_of_players,
+                                Summoners
+                            )
+                        else:
+                            print("This player has no rank in this ranking category")
+        else:
+            await ctx.send("There are no players placed in the ranking")
 
-                        player_ranked = urllib.request.urlopen(api_ranking)
+        order = ["CHALLENGER", "GRANDMASTER", "MASTER", "DIAMOND", "PLATINUM", "GOLD", "SILVER", "BRONZE"]
+        pos = {c: p for (p, c) in enumerate(order)}
+        fully_sorted = sorted(list_of_players, key=lambda elem: (pos[elem.tier], elem.rank, -elem.league_points))
 
-                        player_ranked_data = json.loads(player_ranked.read())
+        display_text = ''
+        increment_rank = 0
 
-                        for i in range(len(player_ranked_data)):
-                            if rankType == "solo" and player_ranked_data[i]['queueType'] == "RANKED_SOLO_5x5":
-                                assigning_json_values(
-                                    player_ranked_data,
-                                    i,
-                                    list_of_players,
-                                    Summoners
-                                )
-                            elif rankType == "flex" and player_ranked_data[i]['queueType'] == "RANKED_FLEX_SR":
-                                assigning_json_values(
-                                    player_ranked_data,
-                                    i,
-                                    list_of_players,
-                                    Summoners
-                                )
-                            else:
-                                print("This player has no rank in this ranking category")
+        for text in fully_sorted:
+            increment_rank += 1
+            win_ratio = round((text.wins * 100) / (text.wins + text.losses))
+            parsed_summoner_name = urllib.parse.quote(text.summoner_name)
+
+            if increment_rank == 1:
+                display_text += f"{increment_rank}. {text.summoner_name}" \
+                                f" :first_place: **{text.tier} {text.rank}" \
+                                f" {text.league_points}LP**- " \
+                                f"{text.wins}W {text.losses}L" \
+                                f" / Win Ratio {win_ratio}%\n\n"
+            elif increment_rank == 2:
+                display_text += f"{increment_rank}. {text.summoner_name}" \
+                                f" :second_place: **{text.tier} {text.rank}" \
+                                f" {text.league_points}LP**- " \
+                                f"{text.wins}W {text.losses}L" \
+                                f" / Win Ratio {win_ratio}%\n\n"
+            elif increment_rank == 3:
+                display_text += f"{increment_rank}. {text.summoner_name}" \
+                                f" :third_place: **{text.tier} {text.rank}" \
+                                f" {text.league_points}LP**- " \
+                                f"{text.wins}W {text.losses}L" \
+                                f" / Win Ratio {win_ratio}%\n\n"
             else:
-                await ctx.send("There are no players placed in the ranking")
+                display_text += f"{increment_rank}. {text.summoner_name}" \
+                                f" **{text.tier} {text.rank}" \
+                                f" {text.league_points}LP**-" \
+                                f" {text.wins}W {text.losses}L" \
+                                f" / Win Ratio {win_ratio}%\n\n"
 
-            order = ["CHALLENGER", "GRANDMASTER", "MASTER", "DIAMOND", "PLATINUM", "GOLD", "SILVER", "BRONZE"]
-            pos = {c: p for (p, c) in enumerate(order)}
-            fully_sorted = sorted(list_of_players, key=lambda elem: (pos[elem.tier], elem.rank, -elem.league_points))
+            display_text = display_text.replace(text.summoner_name,f'[{text.summoner_name}]'
+                                                f'(https://eune.op.gg/summoner/userName={parsed_summoner_name})')
 
-            display_text = ''
-            increment_rank = 0
+        embed = discord.Embed(title=f'Ranked {rankType.capitalize()}', color=0x00ff00)
+        embed.add_field(name='\u200b', value=display_text, inline=False)
+        embed.set_thumbnail(url="https://i.pinimg.com/originals/09/2b/fa/092bfa54aad74ce9ab2de010031731f5.png")
 
-            for text in fully_sorted:
-                increment_rank += 1
-                win_ratio = round((text.wins * 100) / (text.wins + text.losses))
-                parsed_summoner_name = urllib.parse.quote(text.summoner_name)
+        await ctx.send(embed=embed)
 
-                if increment_rank == 1:
-                    display_text += f"{increment_rank}. {text.summoner_name}" \
-                                    f" :first_place: **{text.tier} {text.rank}" \
-                                    f" {text.league_points} LP** - " \
-                                    f"{text.wins}W {text.losses}L" \
-                                    f" / Win Ratio {win_ratio}%\n\n"
-                elif increment_rank == 2:
-                    display_text += f"{increment_rank}. {text.summoner_name}" \
-                                    f" :second_place: **{text.tier} {text.rank}" \
-                                    f" {text.league_points} LP** - " \
-                                    f"{text.wins}W {text.losses}L" \
-                                    f" / Win Ratio {win_ratio}%\n\n"
-                elif increment_rank == 3:
-                    display_text += f"{increment_rank}. {text.summoner_name}" \
-                                    f" :third_place: **{text.tier} {text.rank}" \
-                                    f" {text.league_points} LP** - " \
-                                    f"{text.wins}W {text.losses}L" \
-                                    f" / Win Ratio {win_ratio}%\n\n"
-                else:
-                    display_text += f"{increment_rank}. {text.summoner_name}" \
-                                    f" **{text.tier} {text.rank}" \
-                                    f" {text.league_points} LP** -" \
-                                    f" {text.wins}W {text.losses}L" \
-                                    f" / Win Ratio {win_ratio}%\n\n"
-
-                display_text = display_text.replace(text.summoner_name,f'[{text.summoner_name}]'
-                                                    f'(https://eune.op.gg/summoner/userName={parsed_summoner_name})')
-
-            embed = discord.Embed(title=f'Ranked {rankType.capitalize()}', color=0x0080FF)
-            embed.add_field(name='\u200b', value=display_text, inline=False)
-            embed.set_thumbnail(url="https://i.pinimg.com/originals/09/2b/fa/092bfa54aad74ce9ab2de010031731f5.png")
-
-            await ctx.send(embed=embed)
-
-        except Exception as err:
-            if err:
-                print(err)
-                await ctx.send("There might be no players for the ranking list")
-    else:
-        await ctx.send("Please put the command in this format ex.: ranking solo")
-
-
-@ranking.error
-async def ranking_error(ctx, error):
-    """
-
-    :param ctx:
-    :param error:
-    :return:
-    """
-    if isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send("Please put the command in this format ex.: ranking solo")
+    except Exception as err:
+        if err:
+            print(err)
+            await ctx.send("There might be no players for the ranking list")
+    finally:
+        file.close()
 
 
 @client.command(aliases=['gamemode'])
@@ -603,7 +592,7 @@ async def load(extension):
     """
     client.load_extension(f'cogs.{extension}')
 
-# elo elo elo
+
 @client.command()
 @commands.check(is_it_owner)
 async def unload(extension):
@@ -644,4 +633,4 @@ async def example(ctx):
     await ctx.send(f'Hi im {ctx.author}')
 
 
-client.run('Nzg3NzQ5MDc4Njg2NzYxMDMy.X9ZegA.bqmKO0JUN_8upexhPaFEbtIFvzo')
+client.run(decrypt('Nzg3NzQ5MDc4Njg2NzYxMDMy.X9ZegA.HQgRcsKJgufZ_1OcNzC9MWpvga8'))
