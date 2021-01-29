@@ -131,18 +131,18 @@ async def on_ready():
     print('Bot connected.')
 
 
-@client.event
-async def on_command_error(ctx, error):
-    """Bot sends the message on the command error/Handler for bot commands
-    errors
-
-    Parameters:
-        ctx: object: A command must always have at least one parameter,
-        ctx, which is the Context as the first one
-        error: object: error responsible for unsuccessful command execution
-    """
-    if isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send('Invalid command used.')
+# @client.event
+# async def on_command_error(ctx, error):
+#     """Bot sends the message on the command error/Handler for bot commands
+#     errors
+#
+#     Parameters:
+#         ctx: object: A command must always have at least one parameter,
+#         ctx, which is the Context as the first one
+#         error: object: error responsible for unsuccessful command execution
+#     """
+#     if isinstance(error, commands.MissingRequiredArgument):
+#         await ctx.send('Invalid command used.')
 
 
 # tasks.loop section
@@ -158,6 +158,31 @@ async def ping(ctx):
     """Ping command which returns the message of the discord user ping
     """
     await ctx.send(f'{round(client.latency * 1000)}ms')
+
+
+@client.command()
+async def help(ctx):
+    """
+
+    :param ctx:
+    :return:
+    """
+    embed = discord.Embed(title='Commands', color=0x00ff00)
+    embed.add_field(name='$prefix {ctx}', value='ONLY ADMIN Change the prefix of the bot on your server.', inline=False)
+    embed.add_field(name='$region {ctx}', value='ONLY ADMIN Changes the region of your league ranking.', inline=False)
+    embed.add_field(name='$showregion', value='Shows the currently chosen region for your bot.', inline=False)
+    embed.add_field(name='$add {ctx}', value='ONLY ADMIN Adding the player to the ranking list.', inline=False)
+    embed.add_field(name='$del {ctx}', value='ONLY ADMIN Deleting the player from the ranking list.', inline=False)
+    embed.add_field(name='$delall', value='ONLY ADMIN Deletes all the players from your server list.', inline=False)
+    embed.add_field(name='$showall', value='Shows all players from your server list.', inline=False)
+    embed.add_field(name='$ranking solo/flex', value='Displays the ranking among the players '
+                                                     'added to your server list.', inline=False)
+    embed.add_field(name='$gamemode', value='If you dont know which gamemode to play why not to ask the bot?',
+                    inline=False)
+    embed.set_thumbnail(url="https://static.wikia.nocookie.net/leagueoflegends/images/a/a5/"
+                            "Odyssey_Kayn_profileicon.png/revision/latest?cb=20180911213900")
+
+    await ctx.send(embed=embed)
 
 
 @client.command()
@@ -567,6 +592,18 @@ async def ranking(ctx, rankType: str):
         finally:
             file.close()
     else:
+        await ctx.send("Please put the command in this format ex.: ranking solo")
+
+
+@ranking.error
+async def ranking_error(ctx, error):
+    """
+
+    :param ctx:
+    :param error:
+    :return:
+    """
+    if isinstance(error, commands.MissingRequiredArgument):
         await ctx.send("Please put the command in this format ex.: ranking solo")
 
 
