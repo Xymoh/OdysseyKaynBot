@@ -14,7 +14,7 @@ from discord.ext.commands import has_permissions
 from decryption.decrypt import decrypt
 
 status = ['The universe will be mine', 'Are they taunting us!?', '*Kayn Laughs*', 'Peekaboo']
-api_key = 'RGAPI-f104e44c-9265-43e2-8fc5-4341b1d32f81'
+api_key = 'RGAPI-10fd7287-7c3d-4ed4-a2b5-e18612eaff50'
 
 
 def is_it_owner(ctx):
