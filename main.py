@@ -328,19 +328,19 @@ async def add_player(ctx, *, member: str):
 
         summoners = _cursor.fetchall()
 
-        bool_riot_id = True
+        copy_id = True
 
         for summoner in summoners:
-            if summoner[0].lower() == member.lower() and summoner[2] == str(ctx.guild.id) and summoner[3] == region:
-                bool_riot_id = False
-        if bool_riot_id:
+            if summoner[1] == riot_id and summoner[3] == region:
+                copy_id = False
+        if copy_id:
             with conn:
                 _cursor.execute("""INSERT INTO summoners 
                 VALUES (:summoner_name, :riot_id, :discord_server, :riot_server)""",
                 {'summoner_name': member, 'riot_id': riot_id,
                  'discord_server': str(ctx.guild.id), 'riot_server': region})
 
-        if bool_riot_id:
+        if copy_id:
             await ctx.send(f'Player added to the ranking list: \'{member}\'')
         else:
             await ctx.send('Player is already added to the ranking')
