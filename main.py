@@ -17,7 +17,7 @@ from decryption.decrypt import decrypt
 status = ['The universe will be mine', 'Are they taunting us!?', '*Kayn Laughs*', 'Peekaboo']
 
 # Setting the riot api key
-api_key = 'RGAPI-cc5e7062-5f24-4cd7-b650-935b6084b6ee'
+api_key = 'RGAPI-8c873ae7-ce36-4ea7-9e41-1576e1badcef'
 
 # Setting up the database
 conn = sqlite3.connect('database/summoners.db')
