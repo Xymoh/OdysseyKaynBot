@@ -17,7 +17,7 @@ from decryption.decrypt import decrypt
 status = ['The universe will be mine', 'Are they taunting us!?', '*Kayn Laughs*', 'Peekaboo']
 
 # Setting the riot api key
-api_key = 'RGAPI-8c873ae7-ce36-4ea7-9e41-1576e1badcef'
+api_key = 'RGAPI-91d5b474-0efe-4779-8d56-53e8f83a7709'
 
 # Setting up the database
 conn = sqlite3.connect('database/summoners.db')
@@ -100,7 +100,6 @@ async def on_guild_join(guild):
         conn.commit()
     except sqlite3.OperationalError:
         print("Database already exists")
-
     try:
         _cursor.execute("""CREATE TABLE server_config (
                     guild_id text,
@@ -125,13 +124,8 @@ async def on_guild_remove(guild):
     Parameters:
         guild: object: Responsible for reading discord server data
     """
-    _cursor.execute("SELECT * FROM server_config WHERE guild_id = :guild_id", {'guild_id': str(guild.id)})
-
-    result = _cursor.fetchall()
-
-    if result[0] == str(guild.id):
-        with conn:
-            _cursor.execute("DELETE from server_config WHERE guild_id = :guild_id", {'guild_id': str(guild.id)})
+    with conn:
+        _cursor.execute("DELETE FROM server_config WHERE guild_id = :guild_id", {'guild_id': str(guild.id)})
 
 
 @client.event
