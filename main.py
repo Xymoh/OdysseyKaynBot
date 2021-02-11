@@ -552,7 +552,7 @@ async def ranking(ctx, rankType: str):
                 display_text = display_text.replace(text.summoner_name,f'[{text.summoner_name}]'
                                                     f'(https://eune.op.gg/summoner/userName={parsed_summoner_name})')
 
-            embed = discord.Embed(title=f'Ranked {rankType.capitalize()}', color=0x4DA6FF)
+            embed = discord.Embed(title=f'Ranked {rankType.capitalize()}', color=0x0048BA)
             embed.add_field(name='\u200b', value=display_text, inline=False)
             embed.set_thumbnail(url="https://i.pinimg.com/originals/09/2b/fa/092bfa54aad74ce9ab2de010031731f5.png")
 
