@@ -527,32 +527,32 @@ async def ranking(ctx, rankType: str):
                 if increment_rank == 1:
                     display_text += f"{increment_rank}. {text.summoner_name}" \
                                     f" :first_place: **{text.tier} {text.rank}" \
-                                    f" {text.league_points}LP**- " \
+                                    f" {text.league_points} LP** - " \
                                     f"{text.wins}W {text.losses}L" \
                                     f" / Win Ratio {win_ratio}%\n\n"
                 elif increment_rank == 2:
                     display_text += f"{increment_rank}. {text.summoner_name}" \
                                     f" :second_place: **{text.tier} {text.rank}" \
-                                    f" {text.league_points}LP**- " \
+                                    f" {text.league_points} LP** - " \
                                     f"{text.wins}W {text.losses}L" \
                                     f" / Win Ratio {win_ratio}%\n\n"
                 elif increment_rank == 3:
                     display_text += f"{increment_rank}. {text.summoner_name}" \
                                     f" :third_place: **{text.tier} {text.rank}" \
-                                    f" {text.league_points}LP**- " \
+                                    f" {text.league_points} LP** - " \
                                     f"{text.wins}W {text.losses}L" \
                                     f" / Win Ratio {win_ratio}%\n\n"
                 else:
                     display_text += f"{increment_rank}. {text.summoner_name}" \
                                     f" **{text.tier} {text.rank}" \
-                                    f" {text.league_points}LP**-" \
+                                    f" {text.league_points} LP** -" \
                                     f" {text.wins}W {text.losses}L" \
                                     f" / Win Ratio {win_ratio}%\n\n"
 
                 display_text = display_text.replace(text.summoner_name,f'[{text.summoner_name}]'
                                                     f'(https://eune.op.gg/summoner/userName={parsed_summoner_name})')
 
-            embed = discord.Embed(title=f'Ranked {rankType.capitalize()}', color=0x00ff00)
+            embed = discord.Embed(title=f'Ranked {rankType.capitalize()}', color=0x4DA6FF)
             embed.add_field(name='\u200b', value=display_text, inline=False)
             embed.set_thumbnail(url="https://i.pinimg.com/originals/09/2b/fa/092bfa54aad74ce9ab2de010031731f5.png")
 
