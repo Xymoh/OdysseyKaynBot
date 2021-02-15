@@ -12,7 +12,6 @@ import discord
 
 from discord.ext import commands, tasks
 from discord.ext.commands import has_permissions
-from decryption.decrypt import decrypt
 
 status = ['The universe will be mine', 'Are they taunting us!?', '*Kayn Laughs*', 'Peekaboo']
 
