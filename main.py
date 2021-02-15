@@ -643,4 +643,4 @@ async def example(ctx):
     await ctx.send(f'Hi im {ctx.author}')
 
 
-client.run('Nzg3NzQ5MDc4Njg2NzYxMDMy.X9ZegA.HQgRcsKJgufZ_1OcNzC9MWpvga8')
+client.run('Nzg3NzQ5MDc4Njg2NzYxMDMy.X9ZegA.bqmKO0JUN_8upexhPaFEbtIFvzo')
