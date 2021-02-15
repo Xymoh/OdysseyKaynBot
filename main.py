@@ -16,7 +16,7 @@ from discord.ext.commands import has_permissions
 status = ['The universe will be mine', 'Are they taunting us!?', '*Kayn Laughs*', 'Peekaboo']
 
 # Setting the riot api key
-api_key = 'RGAPI-e9edb841-48a1-4b83-815b-f94c9701c142'
+api_key = 'RGAPI-9e11c559-5bb0-4674-8d81-161858607095'
 
 # Setting up the database
 conn = sqlite3.connect('database/summoners.db')
