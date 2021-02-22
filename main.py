@@ -16,7 +16,7 @@ from discord.ext.commands import has_permissions
 status = ['The universe will be mine', 'Are they taunting us!?', '*Kayn Laughs*', 'Peekaboo']
 
 # Setting the riot api key
-api_key = 'RGAPI-9e11c559-5bb0-4674-8d81-161858607095'
+api_key = 'RIOT API KEY'
 
 # Setting up the database
 conn = sqlite3.connect('database/summoners.db')
@@ -54,19 +54,20 @@ def get_prefix(client, message):
     return server_prefix
 
 
-def assigning_json_values(player_ranked_data, index, list_of_players, summoners):
+def assigning_json_values(player_ranked_data, summoner_current_name, index, list_of_players, summoners):
     """Returns the custom made list which is created by the riot api data usage
 
     Parameters:
-        player_ranked_data: object: Downloaded and decoded Riot Api data
-        index: object: index responsible for reading the certain keys
-        list_of_players: object: custom list
-        summoners: class: custom list creator
+        :param index: index responsible for reading the certain keys
+        :param player_ranked_data: Downloaded and decoded Riot Api data
+        :param summoners: custom list creator
+        :param list_of_players: custom list
+        :param summoner_current_name:
 
     Returns:
         list: custom made list for bot purpose usage
     """
-    summoner_name = player_ranked_data[index]['summonerName']
+    summoner_name = summoner_current_name
     tier = player_ranked_data[index]['tier']
     rank = player_ranked_data[index]['rank']
     league_points = player_ranked_data[index]['leaguePoints']
@@ -74,6 +75,34 @@ def assigning_json_values(player_ranked_data, index, list_of_players, summoners)
     losses = player_ranked_data[index]['losses']
 
     return list_of_players.append(summoners(summoner_name, tier, rank, league_points, wins, losses))
+
+
+def check_if_name_changed(encrypted_summoner_id, guild_id):
+    try:
+        _cursor.execute("SELECT * FROM server_config WHERE guild_id = :guild_id", {'guild_id': guild_id})
+
+        region = _cursor.fetchone()[1]
+
+        api_check_name = f'https://{region}.api.riotgames.com/lol/summoner/v4/summoners/' \
+                         f'{encrypted_summoner_id}?api_key={api_key}'
+
+        check_name = urllib.request.urlopen(api_check_name)
+
+        check_name_data = json.loads(check_name.read())
+
+        _cursor.execute("SELECT * FROM summoners WHERE riot_id = :riot_id", {'riot_id': check_name_data['id']})
+
+        current_summoner_name = _cursor.fetchone()[0]
+
+        if check_name_data['name'] != current_summoner_name:
+            with conn:
+                _cursor.execute("UPDATE summoners SET summoner_name = :new_name WHERE summoner_name = :summ_name",
+                                {'new_name': check_name_data['name'], 'summ_name': current_summoner_name})
+        else:
+            pass
+    except Exception as err:
+        print(err)
+        print("Something went wrong with refreshing the summoner name")
 
 
 client = commands.Bot(command_prefix=get_prefix, help_command=None)
@@ -129,8 +158,7 @@ async def on_guild_remove(guild):
 
 @client.event
 async def on_ready():
-    """Executing on bot startup. Setting base of the server.
-    """
+    """Executing on bot startup. Setting base of the server."""
     await client.change_presence(status=discord.Status.online, activity=discord.Game('Python Project'), afk=False)
     change_status.start()
     print('Bot connected.')
@@ -146,8 +174,7 @@ async def change_status():
 # client.command section
 @client.command()
 async def ping(ctx):
-    """Ping command which returns the message of the discord user ping
-    """
+    """Ping command which returns the message of the discord user ping"""
     await ctx.send(f'{round(client.latency * 1000)}ms')
 
 
@@ -421,17 +448,41 @@ async def show_players(ctx):
     data = _cursor.fetchall()
 
     summoners_text = ''
+    region = ''
     empty_list = True
 
     if len(data) != 0:
         for i, elem in enumerate(data):
             i += 1
             parsed_summoner_name = urllib.parse.quote(elem[0])
+            check_if_name_changed(elem[1], str(ctx.guild.id))
+            if elem[3].lower() == 'eun1':
+                region = 'EUNE'
+            elif elem[3].lower() == 'euw1':
+                region = 'EUW'
+            elif elem[3].lower() == 'ru':
+                region = 'RU'
+            elif elem[3].lower() == 'br1':
+                region = 'BR'
+            elif elem[3].lower() == 'tr1':
+                region = 'TR'
+            elif elem[3].lower() == 'oc1':
+                region = 'OCE'
+            elif elem[3].lower() == 'la2':
+                region = 'LAS'
+            elif elem[3].lower() == 'la1':
+                region = 'LAN'
+            elif elem[3].lower() == 'kr':
+                region = 'KR'
+            elif elem[3].lower() == 'na1':
+                region = 'NA'
+            elif elem[3].lower() == 'jp1':
+                region = 'JP'
             empty_list = False
             summoners_text += f"{i}. Summoner name: [{elem[0]}](https://eune.op.gg/summoner/userName=" \
-                              f"{parsed_summoner_name}) - Region: **{elem[3]}**\n"
+                              f"{parsed_summoner_name}) - Region: **{region}**\n"
 
-    embed = discord.Embed(color=0x00ff00)
+    embed = discord.Embed(color=0x0080FF)
     embed.add_field(name='List of players', value=summoners_text, inline=False)
 
     if not empty_list:
@@ -491,10 +542,16 @@ async def ranking(ctx, rankType: str):
 
                         player_ranked_data = json.loads(player_ranked.read())
 
+                        if player_ranked_data != 0:
+                            check_if_name_changed(encrypted_summoner_id, str(ctx.guild.id))
+
+                        summoner_current_name = summoners_data[0]
+
                         for i in range(len(player_ranked_data)):
                             if rankType == "solo" and player_ranked_data[i]['queueType'] == "RANKED_SOLO_5x5":
                                 assigning_json_values(
                                     player_ranked_data,
+                                    summoner_current_name,
                                     i,
                                     list_of_players,
                                     Summoners
@@ -502,6 +559,7 @@ async def ranking(ctx, rankType: str):
                             elif rankType == "flex" and player_ranked_data[i]['queueType'] == "RANKED_FLEX_SR":
                                 assigning_json_values(
                                     player_ranked_data,
+                                    summoner_current_name,
                                     i,
                                     list_of_players,
                                     Summoners
@@ -643,4 +701,4 @@ async def example(ctx):
     await ctx.send(f'Hi im {ctx.author}')
 
 
-client.run('Nzg3NzQ5MDc4Njg2NzYxMDMy.X9ZegA.bqmKO0JUN_8upexhPaFEbtIFvzo')
+client.run('BOT TOKEN HERE')
