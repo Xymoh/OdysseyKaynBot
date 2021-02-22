@@ -4,6 +4,8 @@
 Discord.py bot responsible for creating a small ranking among friends on the discord server. The user can introduce his own members to the ranking list and then check the records to see who is the best of them. The product is to motivate members of the Discord server to climb to the top of the list and show who is the best player among people on the discord server. **Bot is not for the user experience yet, product is currently during the testing**. It has hashed Keys and they gonna be protected more in the future when the next phase of testing will come.
 
 ### [Link to invite the bot](https://discord.com/oauth2/authorize?client_id=787749078686761032&permissions=18432&scope=bot)
+**IT IS FREE TO TEST NOW! I set up the bot on the server so it should work 24/7. I am currently developing a dedicated bot website and I also need Riot's permission to use their API key to commercialize the product.**
+
 **Bot needs to have the permission to send the messages and also to embed the links (op.gg profiles) to propely work. Future updates might need some new permissions in the similar categories. There is no need to give any administration like permissions.**
 
 ## Commands
