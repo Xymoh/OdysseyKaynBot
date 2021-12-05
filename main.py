@@ -18,10 +18,6 @@ load_dotenv()
 
 status = ['The universe will be mine', 'Are they taunting us!?', '*Kayn Laughs*', 'Peekaboo']
 
-# Secrets
-api_key_secret = os.environ['API_KEY']
-bot_token_secret = os.environ['BOT_TOKEN']
-
 # Setting the riot api key
 api_key = os.environ.get('API_KEY')
 
