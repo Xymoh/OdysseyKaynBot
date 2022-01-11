@@ -16,7 +16,7 @@ from discord.ext.commands import has_permissions
 status = ['The universe will be mine', 'Are they taunting us!?', '*Kayn Laughs*', 'Peekaboo']
 
 # Setting the riot api key
-api_key = 'RGAPI-21971b95-31d2-4d4a-a578-5f5137deb7ee'
+api_key = 'RIOT API KEY HERE'
 
 # Setting up the database
 conn = sqlite3.connect('database/summoners.db')
@@ -738,4 +738,4 @@ async def example(ctx):
     await ctx.send(f'Hi im {ctx.author}')
 
 
-client.run('OTE4NDYyNzc3OTY0Nzc3NTMz.YbHnHg.9oBKN6TrpJZoc9u4LSvphQmOf24')
+client.run('BOT TOKEN HERE')
