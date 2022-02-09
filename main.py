@@ -16,7 +16,7 @@ from discord.ext.commands import has_permissions
 status = ['The universe will be mine', 'Are they taunting us!?', '*Kayn Laughs*', 'Peekaboo']
 
 # Setting the riot api key
-api_key = 'RIOT API KEY HERE'
+api_key = 'RIOT API HERE'
 
 # Setting up the database
 conn = sqlite3.connect('database/summoners.db')
@@ -189,6 +189,7 @@ async def on_guild_remove(guild):
     """
     with conn:
         _cursor.execute("DELETE FROM server_config WHERE guild_id = :guild_id", {'guild_id': str(guild.id)})
+        _cursor.execute("DELETE FROM summoners WHERE discord_server = :discord_server", {'discord_server': str(guild.id)})
 
 
 @client.event
@@ -249,10 +250,13 @@ async def prefix(ctx, new_prefix):
         new_prefix: object: a given new prefix for invoking the bot commands
     """
     with conn:
-        _cursor.execute("UPDATE server_config SET prefix = :prefix WHERE guild_id = :guild_id",
-         {'guild_id': str(ctx.guild.id), 'prefix': new_prefix})
+        if len(new_prefix) > 1:
+            await ctx.send('I support only single symbol prefixes')
+        else:
+            _cursor.execute("UPDATE server_config SET prefix = :prefix WHERE guild_id = :guild_id",
+            {'guild_id': str(ctx.guild.id), 'prefix': new_prefix})
 
-        await ctx.send(f'Prefix changed to: \'{new_prefix}\'')
+            await ctx.send(f'Prefix changed to: \'{new_prefix}\'')
 
 
 @client.command(aliases=['region', 'changeregion'])
@@ -655,7 +659,7 @@ async def ranking(ctx, rankType: str):
         except Exception as err:
             if err:
                 print(err)
-                await ctx.send("There might be no players for the ranking list")
+                await ctx.send("There might be no players for the ranking list, check your region setting")
     else:
         await ctx.send("Please put the command in this format ex.: ranking solo")
 
