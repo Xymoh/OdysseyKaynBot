@@ -1,4 +1,7 @@
 # OdysseyKaynBot
+
+## OUTDATED, REFER TO NEW VERSION [triumphant-ryze](https://github.com/Xymoh/triumphant-ryze)
+
 ## Discord.py bot
 
 Discord.py bot responsible for creating a small ranking among friends on the discord server. The user can introduce his own members to the ranking list and then check the records to see who is the best of them. The product is to motivate members of the Discord server to climb to the top of the list and show who is the best player among people on the discord server. **Bot is not for the user experience yet, product is currently during the testing**. It has hashed Keys and they gonna be protected more in the future when the next phase of testing will come.
